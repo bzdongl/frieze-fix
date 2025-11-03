@@ -39,12 +39,6 @@ if ! check_internet "google.com"; then
     [[ $choice =~ [Nn] ]] && exit
 fi
 
-if ! check_internet "pm.freize.net"; then
-    echo -e "$RED Удалённый сервер не отвечает! $NONE"
-    read -p "Продолжить? (y/n): " choice
-    [[ $choice =~ [Nn] ]] && exit
-fi
-
 # Зависимости
 DEPENDENCIES="ca-certificates build-essential gawk texinfo pkg-config gettext automake libtool bison flex zlib1g-dev libgmp3-dev libmpfr-dev libmpc-dev git zip sshpass mc curl python3 expect bc telnet openssh-client tftpd-hpa libid3tag0-dev gperf libltdl-dev autopoint"
 
@@ -69,9 +63,13 @@ for pkg in $DEPENDENCIES; do
     fi
 done
 
+# --- новые ссылки на GitHub ---
+LOKI_URL="https://github.com/bzdongl/frieze-fix/raw/main/loki.tar"
+UPDATE_URL="https://github.com/bzdongl/frieze-fix/raw/main/update.tar"
+
 # Загрузка и распаковка скриптов
-wget -O "$DIRP/update.tar" http://pm.freize.net/scripts/update.tar &>/dev/null
-wget -O "$DIRP/files/loki.tar" http://pm.freize.net/scripts/loki.tar &>/dev/null
+wget -O "$DIRP/update.tar" "$UPDATE_URL" &>/dev/null
+wget -O "$DIRP/files/loki.tar" "$LOKI_URL" &>/dev/null
 
 tar -xvf "$DIRP/files/loki.tar" configs/git.sh -C configs >/dev/null 2>&1
 tar -xvf "$DIRP/files/loki.tar" configs/uboot.sh -C configs >/dev/null 2>&1
