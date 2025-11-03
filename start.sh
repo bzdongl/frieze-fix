@@ -26,13 +26,14 @@ for d in scripts configs files logs; do
     mkdir -p "$DIRP/$d"
 done
 
-# Проверка интернет-соединения
+# Функция проверки интернета
 check_internet() {
-    local url=$1
-    echo -e "GET $url HTTP/1.0\n\n" | nc "${url%%/*}" 80 > /dev/null 2>&1
+    host=$1
+    echo -e "GET / HTTP/1.0\n\n" | nc "$host" 80 > /dev/null 2>&1
     return $?
 }
 
+# Проверка соединения
 if ! check_internet "google.com"; then
     echo -e "$RED Нет соединения с интернетом! $NONE"
     read -p "Продолжить? (y/n): " choice
@@ -45,29 +46,36 @@ if ! check_internet "pm.freize.net"; then
     [[ $choice =~ [Nn] ]] && exit
 fi
 
-# Проверка и установка зависимостей
-DEPENDENCIES=(ca-certificates build-essential gawk texinfo pkg-config gettext automake libtool bison flex zlib1g-dev libgmp3-dev libmpfr-dev libmpc-dev git zip sshpass mc curl python3 expect bc telnet openssh-client tftpd-hpa libid3tag0-dev gperf libltdl-dev autopoint)
+# Зависимости
+DEPENDENCIES="ca-certificates build-essential gawk texinfo pkg-config gettext automake libtool bison flex zlib1g-dev libgmp3-dev libmpfr-dev libmpc-dev git zip sshpass mc curl python3 expect bc telnet openssh-client tftpd-hpa libid3tag0-dev gperf libltdl-dev autopoint"
 
-echo -e "$YELLOW Проверяем и устанавливаем зависимости... $NONE"
+export DEBIAN_FRONTEND=noninteractive
 
-for pkg in "${DEPENDENCIES[@]}"; do
+# Завершаем незавершённые установки и фиксируем broken пакеты
+sudo dpkg --configure -a
+sudo apt-get install -f -y
+
+# Установка зависимостей
+for pkg in $DEPENDENCIES; do
     if ! dpkg -s "$pkg" >/dev/null 2>&1; then
         echo -e "$YELLOW Устанавливаем $pkg $NONE"
-        sudo apt-get update
-        sudo apt-get -y install "$pkg"
+        sudo apt-get update -qq
+        sudo apt-get -y install "$pkg" -qq
     fi
 done
 
 # Загрузка и распаковка скриптов
-wget -O update.tar http://pm.freize.net/scripts/update.tar &>/dev/null
-wget -O files/loki.tar http://pm.freize.net/scripts/loki.tar &>/dev/null
+wget -O "$DIRP/update.tar" http://pm.freize.net/scripts/update.tar &>/dev/null
+wget -O "$DIRP/files/loki.tar" http://pm.freize.net/scripts/loki.tar &>/dev/null
 
 tar -xvf "$DIRP/files/loki.tar" configs/git.sh -C configs >/dev/null 2>&1
 tar -xvf "$DIRP/files/loki.tar" configs/uboot.sh -C configs >/dev/null 2>&1
-tar -xvf update.tar
-rm -f update.tar
+tar -xvf "$DIRP/update.tar"
+rm -f "$DIRP/update.tar"
 
+# Запуск обновляющих скриптов
 ./scripts/up2.sh
+
 echo -e "$BLUE Скрипты:$NONE$GREEN OK $NONE"
 sleep 0.1
 
