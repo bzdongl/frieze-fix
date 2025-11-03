@@ -20,20 +20,19 @@ sleep 0.2
 DIRP=$(pwd)
 export DIRP
 
-# Создаём нужные директории
+# Создаём директории
 for d in scripts configs files logs; do
     rm -rf "$DIRP/$d"
     mkdir -p "$DIRP/$d"
 done
 
-# Функция проверки интернета
+# Проверка интернета
 check_internet() {
     host=$1
     echo -e "GET / HTTP/1.0\n\n" | nc "$host" 80 > /dev/null 2>&1
     return $?
 }
 
-# Проверка соединения
 if ! check_internet "google.com"; then
     echo -e "$RED Нет соединения с интернетом! $NONE"
     read -p "Продолжить? (y/n): " choice
@@ -51,16 +50,22 @@ DEPENDENCIES="ca-certificates build-essential gawk texinfo pkg-config gettext au
 
 export DEBIAN_FRONTEND=noninteractive
 
-# Завершаем незавершённые установки и фиксируем broken пакеты
+# Завершаем зависшие установки
 sudo dpkg --configure -a
 sudo apt-get install -f -y
 
-# Установка зависимостей
+# Прогресс-бар
+total=$(echo $DEPENDENCIES | wc -w)
+count=0
+
 for pkg in $DEPENDENCIES; do
-    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-        echo -e "$YELLOW Устанавливаем $pkg $NONE"
-        sudo apt-get update -qq
-        sudo apt-get -y install "$pkg" -qq
+    count=$((count+1))
+    echo -ne "$YELLOW Устанавливаем $pkg ($count/$total)... $NONE"
+    timeout 300 sudo apt-get -y install "$pkg" &>/dev/null
+    if [ $? -eq 124 ]; then
+        echo -e "$RED Превышено время установки $pkg, пропускаем $NONE"
+    else
+        echo -e "$GREEN Установлен $pkg $NONE"
     fi
 done
 
