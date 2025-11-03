@@ -50,7 +50,7 @@ DEPENDENCIES="ca-certificates build-essential gawk texinfo pkg-config gettext au
 
 export DEBIAN_FRONTEND=noninteractive
 
-# Завершаем зависшие установки
+# Завершаем зависшие установки и фиксируем broken-пакеты
 sudo dpkg --configure -a
 sudo apt-get install -f -y
 
@@ -78,10 +78,18 @@ tar -xvf "$DIRP/files/loki.tar" configs/uboot.sh -C configs >/dev/null 2>&1
 tar -xvf "$DIRP/update.tar"
 rm -f "$DIRP/update.tar"
 
-# Запуск обновляющих скриптов
-./scripts/up2.sh
+# Запуск обновляющих скриптов с таймаутом 10 минут
+echo -e "$YELLOW Запуск скрипта up2.sh... $NONE"
+timeout 600 bash ./scripts/up2.sh
+if [ $? -eq 124 ]; then
+    echo -e "$RED up2.sh завис, продолжаем дальше $NONE"
+fi
 
-echo -e "$BLUE Скрипты:$NONE$GREEN OK $NONE"
-sleep 0.1
+# Запуск start.sh с таймаутом 10 минут
+echo -e "$YELLOW Запуск start.sh... $NONE"
+timeout 600 bash ./start.sh
+if [ $? -eq 124 ]; then
+    echo -e "$RED start.sh завис, завершение скрипта $NONE"
+fi
 
-exec ./start.sh
+echo -e "$GREEN Скрипт завершён. $NONE"
